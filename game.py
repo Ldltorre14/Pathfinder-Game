@@ -41,12 +41,13 @@ class App:
         self.colorSelector = colors.BLACK
         self.board = GameBoard(screen=self.screen)
         self.matrix = self.board.board_to_matrix()
-        self.load_Coords()
         self.runState = True
         self.paintState = False
         self.eraseState = False
         self.playerState = False
         self.blockState = False
+        
+            
         
         
     
@@ -99,9 +100,27 @@ class App:
             pygame.display.update()
         
     def paintClick(self, x, y):
+        #x --> x coordinate send by the mouse click
+        #y --> y coordinate send by the mouse click
+        #tile_Size ---> 10
+        #margin ----> 3
+        # Considering that window's height 720 and our board has an initial offset of
+        # 235 for the y initial coord...
+        #   grid[0][0].y  -----> y coordinate of the first row in the grid + the margin(235 + 3 = 238)
         tile_x = x // (self.board.tile_size + self.board.margin)
         tile_y = (y - self.board.grid[0][0].y) // (self.board.tile_size + self.board.margin)
-
+        print(tile_x,'---',tile_y)
+        
+        # According to the previous formulas for calculating the xy index of our tile
+        # for example if x = 35;   tile_x = 30 // (10 + 3) --> 2.69 --->  x(index) = 2 
+        #------------------------------------------------------------------------------
+        # for example if y = 245;  tile_y = (245 - 238) // (10 + 3) ---> 0.53 ---> y(index) = 0
+        # Because we have an initial offset of 238 for the initial y coord of the board
+        # If y < 238; basically the y coord send by the click of the mouse
+        # will be outside/above the board in the window/screen, so the result of the formula
+        # will be negative (Out of index)
+        
+        #We validate if the the tile_x and tile_y, got a valid index
         if 0 <= tile_x < self.board.grid_width and 0 <= tile_y < self.board.grid_height:
             tile = self.board.grid[tile_x][tile_y]
             tile.color = self.colorSelector
@@ -111,6 +130,9 @@ class App:
             elif self.playerState:
                 tile.playerFlags = True
                 tile.blockFlags = False
+            elif not self.blockState and not self.playerState:
+                tile.playerFlags = False
+                tile.blockFlags = True
             self.matrix = self.board.board_to_matrix()
     
     def eraseClick(self, x, y):
@@ -184,5 +206,3 @@ class App:
         
             
 
-        
-        
