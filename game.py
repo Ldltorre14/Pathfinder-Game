@@ -29,6 +29,9 @@ class App:
         self.playerInstructionSurface = self.font.render("Press 'P' to set the player(initial Pos)",
                                                          True,
                                                          colors.BLACK)
+        self.goalInstructionSurface = self.font.render("Press 'G' to set the Goal",
+                                                        True,
+                                                        colors.BLACK)
         
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill((220, 220, 220))
@@ -37,6 +40,7 @@ class App:
         self.screen.blit(self.colorInstructionSurface,(100,150))
         self.screen.blit(self.blockInstructionSurface,(100,200))
         self.screen.blit(self.playerInstructionSurface,(400,125))
+        self.screen.blit(self.goalInstructionSurface,(400,175))
         self.colorIndex = 0
         self.colorSelector = colors.BLACK
         self.board = GameBoard(screen=self.screen)
@@ -46,6 +50,7 @@ class App:
         self.eraseState = False
         self.playerState = False
         self.blockState = False
+        self.goalState = False
         
             
         
@@ -89,9 +94,15 @@ class App:
                     elif event.key == pygame.K_b:
                         self.blockState = True
                         self.playerState = False
+                        self.goalState = False
                     elif event.key == pygame.K_p:
                         self.blockState = False
-                        self.playerState = True    
+                        self.playerState = True
+                        self.goalState = False
+                    elif event.key == pygame.K_g:
+                        self.goalState = True
+                        self.playerState = False
+                        self.blockState = False    
 
             self.board.draw_board(screen=self.screen)
             # number of x tiles = 83
@@ -126,13 +137,20 @@ class App:
             tile.color = self.colorSelector
             if self.blockState:
                 tile.playerFlags = False
-                tile.blockFlags = True    
+                tile.blockFlags = True  
+                tile.goalFlags = False  
             elif self.playerState:
                 tile.playerFlags = True
                 tile.blockFlags = False
-            elif not self.blockState and not self.playerState:
+                tile.goalFlags = False
+            elif self.goalState:
+                tile.playerFlags = False
+                tile.blockFlags = False
+                tile.goalFlags = True
+            elif not self.blockState and not self.playerState and not self.goalState:
                 tile.playerFlags = False
                 tile.blockFlags = True
+                tile.goalFlags = False
             self.matrix = self.board.board_to_matrix()
     
     def eraseClick(self, x, y):
@@ -144,6 +162,7 @@ class App:
             tile.color = (255, 255, 255)
             tile.playerFlags = False
             tile.blockFlags = False
+            tile.goalFlags = False
             self.matrix = self.board.board_to_matrix()
     
     def save_Coords(self):
@@ -153,9 +172,10 @@ class App:
                 tile = self.board.grid[i][j]
                 blockFlag = tile.blockFlags
                 playerFlag = tile.playerFlags
+                goalFlag = tile.goalFlags
                 color = tile.color
-                if self.board.grid[i][j].blockFlags or self.board.grid[i][j].playerFlags:
-                    colored_tiles.append((i, j, blockFlag, playerFlag, color))
+                if self.board.grid[i][j].blockFlags or self.board.grid[i][j].playerFlags or self.board.grid[i][j].goalFlags:
+                    colored_tiles.append((i, j, blockFlag, playerFlag, goalFlag, color))
 
         print(colored_tiles)  # Add this line to check the content of colored_tiles
 
@@ -172,7 +192,8 @@ class App:
             x, y = tile_data[0], tile_data[1]
             blockFlag = tile_data[2]
             playerFlag = tile_data[3]
-            color = tile_data[4]
+            goalFlag = tile_data[4]
+            color = tile_data[5]
             tile = Tile(
                 (x * (self.board.tile_size + self.board.margin)) + self.board.margin,
                 ((y * (self.board.tile_size + self.board.margin)) + self.board.margin) + 235,
@@ -180,13 +201,16 @@ class App:
                 self.board.tile_size,
                 color,  # Color
                 blockFlag,
-                playerFlag
+                playerFlag,
+                goalFlag
             )
             self.board.grid[x][y] = tile
             if tile.blockFlags:
                 self.matrix[x][y] = 'X'
             elif tile.playerFlags:
                 self.matrix[x][y] = 'P'
+            elif tile.goalFlags:
+                self.matrix[x][y] = 'G'
                         
     
     def changeColor(self):
