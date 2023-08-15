@@ -4,6 +4,8 @@ import pygame_gui
 from board import GameBoard
 from tile import Tile
 import colors
+import time as tm
+import threading
 
 
 
@@ -51,6 +53,7 @@ class App:
         self.playerState = False
         self.blockState = False
         self.goalState = False
+        self.end = False
         
             
         
@@ -81,6 +84,13 @@ class App:
                     elif self.eraseState:
                         self.eraseClick(x,y)    
                 elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        try:
+                            algorithm_thread = threading.Thread(target=self.solve)
+                            algorithm_thread.start()
+
+                        except:
+                            print("Error")
                     if event.key == pygame.K_RIGHT:
                         print("\n\n\n\n\n",self.matrix)
                     elif event.key == pygame.K_DOWN:
@@ -138,19 +148,24 @@ class App:
             if self.blockState:
                 tile.playerFlags = False
                 tile.blockFlags = True  
-                tile.goalFlags = False  
+                tile.goalFlags = False
+                tile.visitedFlags = False  
             elif self.playerState:
                 tile.playerFlags = True
                 tile.blockFlags = False
                 tile.goalFlags = False
+                tile.visitedFlags = False
             elif self.goalState:
                 tile.playerFlags = False
                 tile.blockFlags = False
                 tile.goalFlags = True
+                tile.visitedFlags = False
             elif not self.blockState and not self.playerState and not self.goalState:
                 tile.playerFlags = False
                 tile.blockFlags = True
                 tile.goalFlags = False
+                tile.visitedFlags = False
+                
             self.matrix = self.board.board_to_matrix()
     
     def eraseClick(self, x, y):
@@ -163,6 +178,7 @@ class App:
             tile.playerFlags = False
             tile.blockFlags = False
             tile.goalFlags = False
+            tile.visitedFlags = False
             self.matrix = self.board.board_to_matrix()
     
     def save_Coords(self):
@@ -173,9 +189,10 @@ class App:
                 blockFlag = tile.blockFlags
                 playerFlag = tile.playerFlags
                 goalFlag = tile.goalFlags
-                color = tile.color
-                if self.board.grid[i][j].blockFlags or self.board.grid[i][j].playerFlags or self.board.grid[i][j].goalFlags:
-                    colored_tiles.append((i, j, blockFlag, playerFlag, goalFlag, color))
+                visitedFlag = tile.visitedFlags
+                color = tile.color 
+                if self.board.grid[i][j].blockFlags or self.board.grid[i][j].playerFlags or self.board.grid[i][j].goalFlags or self.board.grid[i][j].visitedFlags:
+                    colored_tiles.append((i, j, blockFlag, playerFlag, goalFlag, visitedFlag, color))
 
         print(colored_tiles)  # Add this line to check the content of colored_tiles
 
@@ -193,7 +210,8 @@ class App:
             blockFlag = tile_data[2]
             playerFlag = tile_data[3]
             goalFlag = tile_data[4]
-            color = tile_data[5]
+            visitedFlag = tile_data[5]
+            color = tile_data[6]
             tile = Tile(
                 (x * (self.board.tile_size + self.board.margin)) + self.board.margin,
                 ((y * (self.board.tile_size + self.board.margin)) + self.board.margin) + 235,
@@ -202,7 +220,8 @@ class App:
                 color,  # Color
                 blockFlag,
                 playerFlag,
-                goalFlag
+                goalFlag,
+                visitedFlag
             )
             self.board.grid[x][y] = tile
             if tile.blockFlags:
@@ -211,6 +230,8 @@ class App:
                 self.matrix[x][y] = 'P'
             elif tile.goalFlags:
                 self.matrix[x][y] = 'G'
+            elif tile.visitedFlags:
+                self.matrix[x][y] = 'V'
                         
     
     def changeColor(self):
@@ -225,6 +246,66 @@ class App:
         else:
             self.colorIndex = self.colorIndex + 1
         self.colorSelector = colorList[self.colorIndex]
+        
+    def paint(self,x,y):
+        self.board.grid[x][y].color = colors.GREEN
+        
+    def solve(self):
+        val = 0
+        goal = self.board.get_Goal_Pos()
+        player = self.board.get_Player_Pos()
+
+        toVisit = [player]
+        visited = []
+
+        start_time = pygame.time.get_ticks()
+
+        # Pathfinder Algorithm...
+        while toVisit and not self.end:
+            current = toVisit.pop(0)
+            val += 1
+            print("Current: ", current)
+            current_time = pygame.time.get_ticks()
+            if not self.board.grid[current[0]][current[1]].blockFlags and current not in visited:
+                self.paint(current[0], current[1])
+                if current[0] == goal[0] and current[1] == goal[1]:
+                    print("\n\n\nNumber of iterations: ", val)
+                    self.end = True
+                    break
+                self.board.grid[current[0]][current[1]].visitedFlags = True
+                visited.append(current)
+                neighbors = self.board.getNeighbours(current[0], current[1])
+                for neighbor in neighbors:
+                    if (
+                        0 <= neighbor[0] < self.board.grid_width
+                        and 0 <= neighbor[1] < self.board.grid_height
+                        and neighbor not in toVisit
+                        and neighbor not in visited
+                    ):
+                        toVisit.append(neighbor)
+
+                # Chequea si ha pasado el tiempo suficiente para actualizar la ventana
+                if current_time - start_time >= 10:
+                    pygame.event.pump()
+                    pygame.display.flip()  # Actualiza la ventana con flip
+                    start_time = current_time  # Actualiza el tiempo de inicio
+
+        pygame.display.flip()  # Actualiza la ventana al final del algoritmo
+                
+            
+            
+        
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
          
     
         
